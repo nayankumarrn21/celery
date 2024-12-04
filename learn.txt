@@ -1,0 +1,68 @@
+Key Components of a Distributed Task Queue:
+Task Queue:
+    A central queue holds tasks that need to be processed. This queue is managed by a message broker like RabbitMQ, Redis, or Amazon SQS. Tasks are placed in the queue by producers and picked up by workers for execution.
+    Tasks in the queue can represent anything: from processing data, sending emails, making API calls, or performing computations.
+Worker:
+    A worker is a process or machine that pulls tasks from the queue and executes them. Workers can be distributed across multiple machines or containers in a network. This allows tasks to be processed in parallel, increasing throughput and performance.
+    The workers listen for new tasks on the queue and process them asynchronously.
+Broker:
+    The message broker is the communication channel through which tasks are passed from the producers (task creators) to the workers. The broker stores the tasks until a worker is available to process them.
+    Common brokers are RabbitMQ, Redis, Amazon SQS, etc.
+Producer:
+    The producer is any application or service that generates tasks and pushes them onto the queue for processing. In the context of Celery, this is typically your Flask app or any other component that triggers the task.
+Result Backend:
+    The result backend is where the outcome of tasks is stored after they are executed. This allows the producer (or any other interested party) to fetch the results later. This is useful if the task has a result that needs to be tracked or returned.
+
+
+Example Flow:
+    Producer (e.g., Flask App) generates tasks and adds them to the Broker (e.g., Redis).
+    Broker holds the tasks until a worker is available.
+    Worker listens for tasks from the broker, processes the task, and returns the result (optional) to the result backend.
+    Result Backend stores the result (if needed) for future retrieval by the producer.
+
+1. apply_async(): 
+    Highly flexible and customizable. Use it when you need to pass extra parameters like retries, ETA, countdown, etc.
+    we can pass additional options like task retries, time limits, custom routing, etc.
+    It allows us to specify the task execution time, queue, or any custom parameters.
+    Options:-
+        args: A list of positional arguments for the task.
+        kwargs: A dictionary of keyword arguments for the task.
+        countdown: The delay in seconds before the task is executed (relative to now).
+        eta: A datetime object to specify the exact time when the task should run.
+        queue: The name of the queue to which the task will be sent.
+        expires: The time until which the task will be executed (after this time, the task is discarded).
+        retries: The number of times the task should be retried if it fails.
+        bind=True: This allows you to access certain attributes like self.retry()
+        soft_time_limit: Defines a soft time limit for the task, i.e., the maximum time (in seconds) that the task is allowed to run.
+2. delay(): 
+   The delay() method is a shortcut to apply_async() and is specifically designed to be simpler and quicker for tasks where you don’t need advanced features like retry, countdown, ETA, etc.
+3. get(): 
+    Blocks and waits for the task to complete and returns the result.
+4. AsyncResult(Result Handling): 
+    Used to check the status and get the result of an asynchronous task.
+    Key Attributes of AsyncResult:
+    * id: The unique identifier of the task. This is returned by the delay() or apply_async() methods.
+    * status: The current status of the task. This can be one of the following:
+            'PENDING': The task is still in the queue and hasn’t started yet.
+            'STARTED': The task has started executing.
+            'SUCCESS': The task has completed successfully.
+            'FAILURE': The task has failed.
+            'RETRY': The task is being retried (if retry logic is in place).
+            'IGNORED': The task was ignored.
+    * result: The actual result of the task, available after the task has completed.
+    * ready():  A method that checks whether the task has finished executing (either successfully or with failure). Returns True if the task is done, otherwise False
+    * retries: The number of times the task was retried (if configured)
+    * time_taken (Celery 5.x+): The time taken by the task to execute. This can be useful for performance tracking.
+
+
+Task Scheduling and Periodic Tasks in Celery
+    In Celery, Periodic Tasks are typically managed using Celery Beat, which acts as a scheduler. Celery Beat runs in the background and schedules tasks based on a given schedule.
+    How Task Scheduling Works:
+        Task Scheduling: Scheduling refers to executing a task at a specific time in the future or at regular intervals.
+        Periodic Tasks: Periodic tasks are tasks that are executed on a recurring basis (e.g., hourly, daily, weekly, etc.).
+
+Retry Mechanism in Celery:
+    we can set up automatic retries for tasks that fail using self.retry(), controlling the number of retries and delay between attempts.
+    Error Handling: You can handle errors using standard exception handling (try/except) and Celery-specific features like logging and retries.
+    Retry Mechanism: You can set up automatic retries for tasks that fail using self.retry(), controlling the number of retries and delay between attempts.
+    Soft and Hard Time Limits: You can limit how long tasks are allowed to run, with soft limits raising an exception and hard limits terminating the task.
